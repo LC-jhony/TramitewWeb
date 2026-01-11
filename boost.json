@@ -1,0 +1,13 @@
+{
+    "agents": [
+        "opencode"
+    ],
+    "editors": [
+        "claude_code",
+        "opencode",
+        "vscode"
+    ],
+    "guidelines": [
+        "filament/filament"
+    ]
+}
