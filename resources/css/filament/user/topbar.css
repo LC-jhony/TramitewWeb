@@ -57,6 +57,9 @@
     @apply text-white font-medium;
 }
 
+.fi-topbar .fi-icon {
+    @apply text-white;
+}
 
 /* ──────────────────────────────────────────────
    GLOBAL SEARCH
