@@ -34,8 +34,7 @@ class UserPanelProvider extends PanelProvider
             ])
             ->darkMode(true)
             ->topNavigation()
-            ->maxContentWidth(Width::MaxContent)
-
+           //->maxContentWidth(Width::MaxContent)
             ->discoverResources(in: app_path('Filament/User/Resources'), for: 'App\Filament\User\Resources')
             ->discoverPages(in: app_path('Filament/User/Pages'), for: 'App\Filament\User\Pages')
             ->pages([

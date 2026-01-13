@@ -3,3 +3,9 @@
 
 @source '../../../../app/Filament/User/**/*';
 @source '../../../../resources/views/filament/user/**/*';
+
+@import '../user/topbar.css';
+
+.fi-body {
+    @apply bg-gray-100 dark:bg-gray-900 border-none;
+}

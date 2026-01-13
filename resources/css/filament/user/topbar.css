@@ -1,0 +1,127 @@
+/* =========================================================
+   FILAMENT TOPBAR + SEARCH
+   Usa Primary + Zinc
+   Light & Dark unificados
+   ========================================================= */
+
+
+
+
+
+/* ──────────────────────────────────────────────
+   TOPBAR CONTAINER (GRADIENT + FONDO)
+   ────────────────────────────────────────────── */
+
+.fi-topbar-ctn {
+    @apply bg-primary-600 from-primary-700 via-primary-600 to-primary-500 pb-52 text-white shadow dark:bg-primary-800;
+    z-index: 0;
+}
+
+
+/* ──────────────────────────────────────────────
+   TOPBAR STRUCTURE
+   ────────────────────────────────────────────── */
+
+.fi-topbar {
+    @apply mx-auto px-4 md:px-6 lg:px-8 bg-transparent border-b border-primary-500/50 dark:bg-primary-800 dark:border-primary-500/10 shadow-none ring-0;
+}
+
+
+/* Logo */
+.fi-logo {
+    @apply text-white font-bold text-lg;
+}
+
+
+/* ──────────────────────────────────────────────
+   TOPBAR ITEMS
+   ────────────────────────────────────────────── */
+
+.fi-topbar-item>.fi-topbar-item-btn {
+    @apply text-white rounded-md transition-all duration-200 ease-in-out;
+}
+
+.fi-topbar-item>.fi-topbar-item-btn:hover {
+    @apply bg-primary-500/50 dark:bg-white/10;
+}
+
+.fi-topbar-item.fi-active>.fi-topbar-item-btn {
+    @apply bg-primary-500/50 dark:bg-white/10 font-semibold;
+}
+
+.fi-topbar-item>.fi-topbar-item-btn svg {
+    @apply text-white;
+}
+
+.fi-topbar-item>.fi-topbar-item-btn .fi-topbar-item-label {
+    @apply text-white font-medium;
+}
+
+
+/* ──────────────────────────────────────────────
+   GLOBAL SEARCH
+   ────────────────────────────────────────────── */
+
+.fi-global-search .fi-input-wrp {
+    @apply text-white overflow-hidden bg-primary-500/50 dark:bg-primary-500/30 border-0 ring-0 shadow-none;
+}
+
+.fi-global-search .fi-input-wrp input.fi-input {
+    @apply w-full text-sm text-white placeholder-white dark:placeholder-white border-0 ring-0 shadow-none;
+}
+
+.fi-global-search .fi-input-wrp input.fi-input:hover,
+.fi-global-search .fi-input-wrp input.fi-input:focus {
+    @apply outline-none ring-0 shadow-none text-white;
+}
+
+.fi-global-search .fi-input-wrp-prefix svg {
+    @apply text-white dark:text-white/90;
+}
+
+.fi-global-search .fi-input-wrp-suffix button,
+.fi-global-search .fi-input-wrp-suffix svg {
+    @apply text-white dark:text-white/90 transition;
+}
+
+.fi-global-search .fi-input-wrp-suffix button:hover {
+    @apply bg-white/20 dark:bg-white/10;
+}
+
+
+/* ──────────────────────────────────────────────
+   PAGE HEADER (HERO EFFECT)
+   ────────────────────────────────────────────── */
+
+.fi-page-header-main-ctn {
+    @apply mx-auto -mt-40 max-w-7xl relative;
+    z-index: 10 !important;
+}
+
+.fi-header-heading {
+    @apply text-white font-bold text-2xl;
+}
+
+/* .fi-breadcrumbs-item {
+    @apply text-white;
+} */
+
+.fi-breadcrumbs-item {
+    @apply text-white no-underline;
+
+    & .fi-breadcrumbs-item-label {
+        @apply text-white no-underline;
+    }
+
+    & .fi-breadcrumbs-item-separator {
+        @apply text-white;
+    }
+}
+
+/* ──────────────────────────────────────────────
+   PAGE MAIN CARD
+   ────────────────────────────────────────────── */
+
+.fi-page-main {
+    @apply p-4 rounded-lg bg-white border border-zinc-200 shadow-zinc-900/50 dark:bg-zinc-900 dark:border-zinc-800;
+}
