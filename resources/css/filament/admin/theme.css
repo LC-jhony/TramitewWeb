@@ -1,0 +1,53 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+.fi-body {
+    @apply content-[''] fixed inset-0 w-full h-full;
+    @apply antialiased bg-primary-100 dark:bg-primary-900;
+    @apply transition-all duration-300 ease-in-out;
+}
+
+.fi-main-ctn {
+    @apply bg-white/95 dark:bg-zinc-900 shadow-lg;
+    @apply backdrop-blur-sm;
+    @apply border border-primary-200/30 dark:border-zinc-800;
+    @apply rounded-l-3xl;
+    @apply shadow-none;
+    @apply transition-all duration-200;
+    margin-top: 1rem;
+}
+
+.fi-sidebar .fi-main-sidebar {
+    @apply flex-col w-full md:flex md:flex-row md:min-h-screen;
+    @apply bg-zinc-100 dark:text-primary-200 dark:bg-primary-800 text-primary-900;
+}
+
+.fi-sidebar-item {
+    &.fi-active {
+        &>.fi-sidebar-item-btn {
+            @apply bg-primary-200 hover:bg-primary-200 dark:bg-primary-700/10 dark:text-primary-200;
+        }
+    }
+}
+
+.fi-sidebar-item {
+    &.fi-active {
+        &>.fi-sidebar-item-btn {
+            &>.fi-icon {
+                @apply text-primary-600 hover:text-primary-600;
+            }
+        }
+    }
+}
+
+.fi-sidebar-item {
+    &.fi-active {
+        &>.fi-sidebar-item-btn {
+            &>.fi-sidebar-item-label {
+                @apply text-primary-600 hover:text-primary-600;
+            }
+        }
+    }
+}
