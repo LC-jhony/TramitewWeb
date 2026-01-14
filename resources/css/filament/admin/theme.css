@@ -27,7 +27,7 @@
 .fi-sidebar-item {
     &.fi-active {
         &>.fi-sidebar-item-btn {
-            @apply bg-primary-200 hover:bg-primary-200 dark:bg-primary-700/10 dark:text-primary-200;
+            @apply bg-primary-200 hover:bg-primary-300 dark:hover:bg-primary-600/20 dark:bg-primary-700/10 dark:text-primary-200;
         }
     }
 }
@@ -36,7 +36,7 @@
     &.fi-active {
         &>.fi-sidebar-item-btn {
             &>.fi-icon {
-                @apply text-primary-600 hover:text-primary-600;
+                @apply text-primary-600 hover:text-primary-700 dark:hover:text-primary-300;
             }
         }
     }
@@ -46,8 +46,12 @@
     &.fi-active {
         &>.fi-sidebar-item-btn {
             &>.fi-sidebar-item-label {
-                @apply text-primary-600 hover:text-primary-600;
+                @apply text-primary-600 hover:text-primary-700 dark:hover:text-primary-300;
             }
         }
     }
+}
+
+#key-bindings-1 {
+    @apply bg-primary-800;
 }
