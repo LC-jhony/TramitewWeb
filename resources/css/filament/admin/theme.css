@@ -2,8 +2,7 @@
 
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
-
-.fi-body {
+/* .fi-body {
     @apply content-[''] fixed inset-0 w-full h-full;
     @apply antialiased bg-primary-100 dark:bg-primary-900;
     @apply transition-all duration-300 ease-in-out;
@@ -54,4 +53,4 @@
 
 #key-bindings-1 {
     @apply bg-primary-800;
-}
+} */

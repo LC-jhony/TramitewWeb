@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Livewire\CustomTopbar;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -25,6 +26,7 @@ class UserPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         return $panel
+        
             ->id('user')
             ->path('user')
             ->viteTheme('resources/css/filament/user/theme.css')
@@ -33,6 +35,7 @@ class UserPanelProvider extends PanelProvider
                 'primary' => Color::Indigo,
             ])
             ->darkMode(true)
+          //  ->topbarLivewireComponent(CustomTopbar::class)
             ->topNavigation()
            //->maxContentWidth(Width::MaxContent)
             ->discoverResources(in: app_path('Filament/User/Resources'), for: 'App\Filament\User\Resources')

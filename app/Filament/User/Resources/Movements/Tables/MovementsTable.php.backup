@@ -24,7 +24,6 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 
 class MovementsTable
 {
@@ -63,18 +62,7 @@ class MovementsTable
                         MovementAction::RECHAZADO->value => 'danger',
                         default => 'gray',
                     })
-                    ->formatStateUsing(function($state) {
-                        // Convertir el estado a enum si es una cadena
-                        if (is_string($state) && $state !== '') {
-                            try {
-                                $movementAction = MovementAction::from($state);
-                                return $movementAction->getLabel();
-                            } catch (\ValueError $e) {
-                                return $state;
-                            }
-                        }
-                        return $state?->label ?? $state;
-                    }),
+                    ->formatStateUsing(fn($state) => $state?->label ?? $state),
                 TextColumn::make('destinationOffice.name')
                     ->label('Oficina Destino')
                     ->color('warning')
@@ -95,18 +83,7 @@ class MovementsTable
                     ->label('Estado')
                     ->badge()
                     ->searchable()
-                    ->formatStateUsing(function($state) {
-                        // Convertir el estado a enum si es una cadena
-                        if (is_string($state) && $state !== '') {
-                            try {
-                                $movementStatus = MovementStatus::from($state);
-                                return $movementStatus->getLabel();
-                            } catch (\ValueError $e) {
-                                return $state;
-                            }
-                        }
-                        return $state?->label ?? $state;
-                    }),
+                    ->formatStateUsing(fn($state) => $state?->label ?? $state),
                 TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime()
@@ -160,6 +137,7 @@ class MovementsTable
                         fn(callable $get) =>
                         $get('destination_office_id')
                             ? User::where('office_id', $get('destination_office_id'))
+                            ->where('status', true)
                             ->pluck('name', 'id')
                             : []
                     )
@@ -181,77 +159,32 @@ class MovementsTable
             ])
             ->action(function (Movement $record, array $data) {
                 try {
-                    // Validar autorización: verificar que el usuario puede derivar este documento
-                    $user = auth()->user();
-                    $document = $record->document;
-
-                    // Verificar que el usuario tiene permiso para derivar este documento
-                    // Por ejemplo, verificar que el documento está asignado a su oficina o que tiene permisos especiales
-                    $canForward = $user->office_id == $document->id_office_destination ||
-                                  $user->office_id == $document->area_origen_id ||
-                                  $user->hasRole('admin'); // Asumiendo que hay roles de usuario
-
-                    if (!$canForward) {
-                        throw ValidationException::withMessages([
-                            'authorization' => 'No tiene permiso para derivar este documento.'
-                        ]);
-                    }
-
-                    // Validar los datos de entrada
-                    $validatedData = [
-                        'destination_office_id' => $data['destination_office_id'] ?? null,
-                        'destination_user_id' => $data['destination_user_id'] ?? null,
-                        'indication' => $data['indication'] ?? null,
-                        'observation' => $data['observation'] ?? null,
-                    ];
-
-                    // Validar que los IDs existen y son válidos
-                    $destinationOffice = Office::find($validatedData['destination_office_id']);
-                    if (!$destinationOffice || !$destinationOffice->status) {
-                        throw ValidationException::withMessages([
-                            'destination_office_id' => 'La oficina de destino no existe o no está activa.'
-                        ]);
-                    }
-
-                    if ($validatedData['destination_user_id']) {
-                        $destinationUser = User::find($validatedData['destination_user_id']);
-                        if (!$destinationUser || $destinationUser->office_id != $validatedData['destination_office_id']) {
-                            throw ValidationException::withMessages([
-                                'destination_user_id' => 'El usuario de destino no existe o no pertenece a la oficina seleccionada.'
-                            ]);
-                        }
-                    }
-
-                    DB::transaction(function () use ($record, $validatedData) {
+                    DB::transaction(function () use ($record, $data) {
+                        // Aquí se debería llamar a un servicio o método del modelo
+                        // para encapsular la lógica de negocio
                         $document = $record->document;
 
                         $document->movements()->create([
                             'origin_office_id' => auth()->user()->office_id ?? $document->area_origen_id,
                             'origin_user_id' => auth()->id(),
-                            'destination_office_id' => $validatedData['destination_office_id'],
-                            'destination_user_id' => $validatedData['destination_user_id'],
+                            'destination_office_id' => $data['destination_office_id'],
+                            'destination_user_id' => $data['destination_user_id'] ?? null,
                             'action' => MovementAction::DERIVACION,
-                            'indication' => $validatedData['indication'],
-                            'observation' => $validatedData['observation'],
+                            'indication' => $data['indication'] ?? null,
+                            'observation' => $data['observation'] ?? null,
                             'status' => MovementStatus::PENDING,
                             'receipt_date' => null,
                         ]);
 
                         $document->update([
                             'status' => DocumentStatus::IN_PROCESS,
-                            'id_office_destination' => $validatedData['destination_office_id'],
+                            'id_office_destination' => $data['destination_office_id'],
                         ]);
                     });
 
                     Notification::make()
                         ->title('Documento derivado correctamente')
                         ->success()
-                        ->send();
-                } catch (ValidationException $e) {
-                    Notification::make()
-                        ->title('Error de validación')
-                        ->body($e->validator->errors()->first())
-                        ->danger()
                         ->send();
                 } catch (\Exception $e) {
                     Notification::make()
@@ -268,10 +201,6 @@ class MovementsTable
         return Action::make('respond')
             ->label('Responder')
             ->icon('heroicon-o-chat-bubble-left-right')
-            ->visible(fn(Movement $record) => $record->document->status !== DocumentStatus::COMPLETED)
-            ->disabled(fn(Movement $record) => $record->document->movements()
-                ->where('action', MovementAction::RESPUESTA->value)
-                ->exists())
             ->form([
                 Select::make('destination_office_id')
                     ->label('Oficina Destino (Respuesta)')
@@ -281,13 +210,14 @@ class MovementsTable
                     ->native(false),
                 Select::make('destination_user_id')
                     ->label('Usuario Destino')
-                ->options(
-                    fn(callable $get) =>
-                    $get('destination_office_id')
-                        ? User::where('office_id', $get('destination_office_id'))
-                        ->pluck('name', 'id')
-                        : []
-                )
+                    ->options(
+                        fn(callable $get) =>
+                        $get('destination_office_id')
+                            ? User::where('office_id', $get('destination_office_id'))
+                            ->where('status', true)
+                            ->pluck('name', 'id')
+                            : []
+                    )
                     ->searchable()
                     ->required()
                     ->native(false),
@@ -314,64 +244,18 @@ class MovementsTable
             ])
             ->action(function (Movement $record, array $data) {
                 try {
-                    // Validar autorización: verificar que el usuario puede responder este documento
-                    $user = auth()->user();
-                    $document = $record->document;
-
-                    // Verificar que el usuario tiene permiso para responder este documento
-                    $canRespond = $user->office_id == $document->id_office_destination ||
-                                  $user->office_id == $document->area_origen_id ||
-                                  $user->hasRole('admin');
-
-                    if (!$canRespond) {
-                        throw ValidationException::withMessages([
-                            'authorization' => 'No tiene permiso para responder este documento.'
-                        ]);
-                    }
-
-                    // Validar los datos de entrada
-                    $validatedData = [
-                        'destination_office_id' => $data['destination_office_id'] ?? null,
-                        'destination_user_id' => $data['destination_user_id'] ?? null,
-                        'observation' => $data['observation'] ?? null,
-                        'response_document' => $data['response_document'] ?? null,
-                    ];
-
-                    // Validar que los IDs existen y son válidos
-                    $destinationOffice = Office::find($validatedData['destination_office_id']);
-                    if (!$destinationOffice || !$destinationOffice->status) {
-                        throw ValidationException::withMessages([
-                            'destination_office_id' => 'La oficina de destino no existe o no está activa.'
-                        ]);
-                    }
-
-                    if ($validatedData['destination_user_id']) {
-                        $destinationUser = User::find($validatedData['destination_user_id']);
-                        if (!$destinationUser || $destinationUser->office_id != $validatedData['destination_office_id']) {
-                            throw ValidationException::withMessages([
-                                'destination_user_id' => 'El usuario de destino no existe o no pertenece a la oficina seleccionada.'
-                            ]);
-                        }
-                    }
-
-                    if (empty(trim($validatedData['observation']))) {
-                        throw ValidationException::withMessages([
-                            'observation' => 'La observación es requerida.'
-                        ]);
-                    }
-
-                    DB::transaction(function () use ($record, $validatedData) {
+                    DB::transaction(function () use ($record, $data) {
                         $document = $record->document;
 
                         // Crear el movimiento de respuesta
                         $document->movements()->create([
                             'origin_office_id' => auth()->user()->office_id ?? $document->id_office_destination,
                             'origin_user_id' => auth()->id(),
-                            'destination_office_id' => $validatedData['destination_office_id'],
-                            'destination_user_id' => $validatedData['destination_user_id'],
+                            'destination_office_id' => $data['destination_office_id'],
+                            'destination_user_id' => $data['destination_user_id'] ?? null,
                             'action' => MovementAction::RESPUESTA,
                             'indication' => null,
-                            'observation' => $validatedData['observation'],
+                            'observation' => $data['observation'],
                             'status' => MovementStatus::COMPLETED,
                             'receipt_date' => now(),
                         ]);
@@ -379,30 +263,12 @@ class MovementsTable
                         // Actualizar el estado del documento
                         $document->update([
                             'status' => DocumentStatus::COMPLETED,
-                            'id_office_destination' => $validatedData['destination_office_id'],
+                            'id_office_destination' => $data['destination_office_id'],
                         ]);
 
                         // Manejar la subida de archivos si se proporcionaron
-                        if (isset($validatedData['response_document']) && !empty($validatedData['response_document'])) {
-                            foreach ($validatedData['response_document'] as $filePath) {
-                                // Validar el tipo MIME del archivo
-                                $mimeType = Storage::mimeType($filePath);
-                                $allowedMimes = [
-                                    'application/pdf',
-                                    'application/msword',
-                                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                                    'application/vnd.ms-excel',
-                                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                                    'image/jpeg',
-                                    'image/png',
-                                ];
-
-                                if (!in_array($mimeType, $allowedMimes)) {
-                                    throw ValidationException::withMessages([
-                                        'response_document' => 'Tipo de archivo no permitido: ' . $mimeType
-                                    ]);
-                                }
-
+                        if (isset($data['response_document']) && !empty($data['response_document'])) {
+                            foreach ($data['response_document'] as $filePath) {
                                 // Obtener información del archivo desde el path temporal
                                 $fullPath = storage_path('app/' . $filePath);
 
@@ -432,14 +298,8 @@ class MovementsTable
                     });
 
                     Notification::make()
-                        ->title('Respuesta enviada correctamente')
+                        ->title('Respuesta enviada correctamente') // Corregido typo
                         ->success()
-                        ->send();
-                } catch (ValidationException $e) {
-                    Notification::make()
-                        ->title('Error de validación')
-                        ->body($e->validator->errors()->first())
-                        ->danger()
                         ->send();
                 } catch (\Exception $e) {
                     Notification::make()
@@ -466,33 +326,7 @@ class MovementsTable
             ])
             ->action(function (Movement $record, array $data) {
                 try {
-                    // Validar autorización: verificar que el usuario puede rechazar este documento
-                    $user = auth()->user();
-                    $document = $record->document;
-
-                    // Verificar que el usuario tiene permiso para rechazar este documento
-                    $canReject = $user->office_id == $document->id_office_destination ||
-                                 $user->office_id == $document->area_origen_id ||
-                                 $user->hasRole('admin');
-
-                    if (!$canReject) {
-                        throw ValidationException::withMessages([
-                            'authorization' => 'No tiene permiso para rechazar este documento.'
-                        ]);
-                    }
-
-                    // Validar los datos de entrada
-                    $validatedData = [
-                        'observation' => $data['observation'] ?? null,
-                    ];
-
-                    if (empty(trim($validatedData['observation']))) {
-                        throw ValidationException::withMessages([
-                            'observation' => 'La observación es requerida.'
-                        ]);
-                    }
-
-                    DB::transaction(function () use ($record, $validatedData) {
+                    DB::transaction(function () use ($record, $data) {
                         $document = $record->document;
 
                         $document->movements()->create([
@@ -502,7 +336,7 @@ class MovementsTable
                             'destination_user_id' => null,
                             'action' => MovementAction::RECHAZADO,
                             'indication' => null,
-                            'observation' => $validatedData['observation'],
+                            'observation' => $data['observation'],
                             'status' => MovementStatus::REJECTED,
                             'receipt_date' => now(),
                         ]);
@@ -515,12 +349,6 @@ class MovementsTable
                     Notification::make()
                         ->title('Documento rechazado')
                         ->warning()
-                        ->send();
-                } catch (ValidationException $e) {
-                    Notification::make()
-                        ->title('Error de validación')
-                        ->body($e->validator->errors()->first())
-                        ->danger()
                         ->send();
                 } catch (\Exception $e) {
                     Notification::make()
@@ -548,25 +376,7 @@ class MovementsTable
             ])
             ->action(function (Movement $record, array $data) {
                 try {
-                    // Validar autorización: verificar que el usuario puede archivar este documento
-                    $user = auth()->user();
-                    $document = $record->document;
-
-                    // Verificar que el usuario tiene permiso para archivar este documento
-                    $canArchive = $user->hasRole('admin') || $user->id === $document->user_id;
-
-                    if (!$canArchive) {
-                        throw ValidationException::withMessages([
-                            'authorization' => 'No tiene permiso para archivar este documento.'
-                        ]);
-                    }
-
-                    // Validar los datos de entrada
-                    $validatedData = [
-                        'observation' => $data['observation'] ?? 'Documento archivado',
-                    ];
-
-                    DB::transaction(function () use ($record, $validatedData) {
+                    DB::transaction(function () use ($record, $data) {
                         $document = $record->document;
 
                         $document->movements()->create([
@@ -576,7 +386,7 @@ class MovementsTable
                             'destination_user_id' => null,
                             'action' => MovementAction::ARCHIVADO,
                             'indication' => null,
-                            'observation' => $validatedData['observation'],
+                            'observation' => $data['observation'] ?? 'Documento archivado',
                             'status' => MovementStatus::COMPLETED,
                             'receipt_date' => now(),
                         ]);
@@ -589,12 +399,6 @@ class MovementsTable
                     Notification::make()
                         ->title('Documento archivado correctamente')
                         ->success()
-                        ->send();
-                } catch (ValidationException $e) {
-                    Notification::make()
-                        ->title('Error de validación')
-                        ->body($e->validator->errors()->first())
-                        ->danger()
                         ->send();
                 } catch (\Exception $e) {
                     Notification::make()

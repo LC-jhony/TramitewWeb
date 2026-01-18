@@ -210,16 +210,15 @@ class DocumentsTable
                     ->disabled()
                     ->dehydrated(),
             ])
-            ->action(function (Movement $record, array $data) {
+            ->action(function (Document $record, array $data) {
                 try {
                     DB::transaction(function () use ($record, $data) {
                         // Aquí se debería llamar a un servicio o método del modelo
                         // para encapsular la lógica de negocio
-                        $document = $record->document;
 
-                        $document->movements()->create([
+                        $record->movements()->create([
                             'document_id' => $record->id,
-                            'origin_office_id' => $data['origin_office_id'] ?? $record->office_id, // Use the form data or fallback to record's office
+                            'origin_office_id' => $data['origin_office_id'] ?? Auth::user()->office_id, // Use the form data or fallback to current user's office
                             'origin_user_id' => Auth::id(),
                             'destination_office_id' => $data['destination_office_id'],
                             'destination_user_id' => $data['destination_user_id'],
@@ -230,7 +229,7 @@ class DocumentsTable
                             'receipt_date' => $data['receipt_date'],
                         ]);
 
-                        $document->update([
+                        $record->update([
                             'status' => DocumentStatus::IN_PROCESS,
                             'id_office_destination' => $data['destination_office_id'],
                             'user_id' => $data['destination_user_id'],
